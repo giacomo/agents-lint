@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CheckResult, LintIssue, ParsedAgentsMd } from '../types.js';
+import type { CheckResult, LintIssue, ParsedAgentsMd, LintConfig, Severity } from '../types.js';
 
 interface PackageJson {
   scripts?: Record<string, string>;
@@ -10,11 +10,13 @@ interface PackageJson {
 
 export function checkNpmScripts(
   parsed: ParsedAgentsMd,
-  repoRoot: string
+  repoRoot: string,
+  config: LintConfig = {}
 ): CheckResult {
   const issues: LintIssue[] = [];
   let passed = 0;
   let failed = 0;
+  const missingScriptSeverity: Severity = config.severity?.missingScript ?? 'warn';
 
   // Find all package.json files (root + workspaces)
   const packageJsonPaths = findPackageJsonFiles(repoRoot);
@@ -49,7 +51,7 @@ export function checkNpmScripts(
 
       issues.push({
         rule: 'no-missing-script',
-        severity: 'warn',
+        severity: missingScriptSeverity,
         message: `Script "${script}" is mentioned but not found in any package.json`,
         line: lineNumber >= 0 ? lineNumber + 1 : undefined,
         context: lineNumber >= 0 ? parsed.lines[lineNumber]?.trim() : undefined,

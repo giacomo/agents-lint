@@ -1,4 +1,4 @@
-import type { CheckResult, LintIssue, ParsedAgentsMd } from '../types.js';
+import type { CheckResult, LintIssue, ParsedAgentsMd, LintConfig, Severity } from '../types.js';
 
 interface RecommendedSection {
   keywords: string[];
@@ -37,14 +37,14 @@ const QUALITY_CHECKS = [
     check: (parsed: ParsedAgentsMd) => parsed.rawContent.length < 100,
     rule: 'too-short',
     severity: 'warn' as const,
-    message: 'AGENTS.md is very short (< 100 characters) — agents may lack sufficient context',
+    message: 'Context file is very short (< 100 characters) — agents may lack sufficient context',
     suggestion: 'Add more context about your project structure, conventions, and workflows.',
   },
   {
     check: (parsed: ParsedAgentsMd) => parsed.rawContent.length > 15000,
     rule: 'too-long',
     severity: 'info' as const,
-    message: 'AGENTS.md is very long (> 15,000 characters) — context bloat increases cost by 20%+',
+    message: 'Context file is very long (> 15,000 characters) — context bloat increases cost by 20%+',
     suggestion: 'Trim to only non-discoverable information. Remove sections that describe things agents can infer from code.',
   },
   {
@@ -54,7 +54,7 @@ const QUALITY_CHECKS = [
     },
     rule: 'too-many-todos',
     severity: 'info' as const,
-    message: 'AGENTS.md contains multiple TODO/FIXME markers — stale notes can mislead agents',
+    message: 'Context file contains multiple TODO/FIXME markers — stale notes can mislead agents',
     suggestion: 'Resolve TODOs or remove them from AGENTS.md. Outdated notes are worse than no notes.',
   },
   {
@@ -65,17 +65,30 @@ const QUALITY_CHECKS = [
     },
     rule: 'old-year-reference',
     severity: 'info' as const,
-    message: 'AGENTS.md references years before 2024 — may contain stale information',
+    message: 'Context file references years before 2024 — may contain stale information',
     suggestion: 'Review and update any time-sensitive references.',
   },
 ];
 
-export function checkStructure(parsed: ParsedAgentsMd): CheckResult {
+export function checkStructure(parsed: ParsedAgentsMd, config: LintConfig = {}): CheckResult {
   const issues: LintIssue[] = [];
   let passed = 0;
+  const missingSectionSeverity: Severity = config.severity?.missingSection ?? 'warn';
+
+  // Build list of sections to check (defaults + any extra from config)
+  const sectionsToCheck = [...RECOMMENDED_SECTIONS];
+  for (const customSection of config.requiredSections ?? []) {
+    sectionsToCheck.push({
+      keywords: [customSection.toLowerCase()],
+      rule: `missing-custom-section-${customSection.toLowerCase().replace(/\s+/g, '-')}`,
+      message: `Required section "${customSection}" not found`,
+      suggestion: `Add a "${customSection}" section as required by your .agents-lint.json config.`,
+      severity: missingSectionSeverity,
+    });
+  }
 
   // Check for recommended sections
-  for (const section of RECOMMENDED_SECTIONS) {
+  for (const section of sectionsToCheck) {
     const sectionTitles = parsed.sections.map((s) => s.title.toLowerCase());
     const contentLower = parsed.rawContent.toLowerCase();
 
@@ -90,7 +103,7 @@ export function checkStructure(parsed: ParsedAgentsMd): CheckResult {
     } else {
       issues.push({
         rule: section.rule,
-        severity: section.severity,
+        severity: missingSectionSeverity,
         message: section.message,
         suggestion: section.suggestion,
       });

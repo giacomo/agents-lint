@@ -44,6 +44,16 @@ export interface ParsedAgentsMd {
   lines: string[];
 }
 
+export interface MultiLintReport {
+  files: string[];
+  reports: LintReport[];
+  crossCheck: CheckResult;
+  overallScore: number;
+  totalErrors: number;
+  totalWarnings: number;
+  totalInfos: number;
+}
+
 export interface LintConfig {
   severity?: {
     missingPath?: Severity;

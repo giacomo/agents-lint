@@ -21,16 +21,20 @@ Requires Node.js >=18.
 ```
 src/
   cli.ts          CLI entry point (argument parsing, output)
-  linter.ts       Orchestrates all checkers, returns LintReport
-  parser.ts       Parses AGENTS.md into structured data
+  linter.ts       lint() single file; lintAll() multi-file + cross-check
+  parser.ts       Parses context files into ParsedAgentsMd
   reporter.ts     Formats output (text + JSON), computes score
-  types.ts        Shared TypeScript types
+  types.ts        Shared TypeScript types (LintReport, MultiLintReport, …)
+  config.ts       Loads .agents-lint.json config
+  init.ts         Generates starter AGENTS.md
+  fix.ts          --fix interactive mode engine
   checkers/
     filesystem.ts    Checks if mentioned paths exist
     npm-scripts.ts   Validates npm run <script> references
     dependencies.ts  Checks package.json for mentioned deps
     framework.ts     Framework-specific staleness checks
     structure.ts     Validates recommended sections and quality
+    cross.ts         Cross-file consistency (PM, scripts, paths)
 ```
 
 ## Testing

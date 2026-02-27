@@ -1,18 +1,30 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CheckResult, LintIssue, ParsedAgentsMd } from '../types.js';
+import type { CheckResult, LintIssue, ParsedAgentsMd, LintConfig, Severity } from '../types.js';
+
+function isIgnored(value: string, patterns: string[]): boolean {
+  return patterns.some((p) => value.includes(p));
+}
 
 export function checkFilesystem(
   parsed: ParsedAgentsMd,
-  repoRoot: string
+  repoRoot: string,
+  config: LintConfig = {}
 ): CheckResult {
   const issues: LintIssue[] = [];
   let passed = 0;
   let failed = 0;
+  const ignorePatterns = config.ignorePatterns ?? [];
+  const missingPathSeverity: Severity = config.severity?.missingPath ?? 'error';
 
   for (const mentionedPath of parsed.mentionedPaths) {
     // Skip URLs and environment variables
     if (mentionedPath.startsWith('http') || mentionedPath.startsWith('$')) {
+      continue;
+    }
+
+    // Skip ignored patterns
+    if (isIgnored(mentionedPath, ignorePatterns)) {
       continue;
     }
 
@@ -30,7 +42,7 @@ export function checkFilesystem(
 
       issues.push({
         rule: 'no-missing-path',
-        severity: 'error',
+        severity: missingPathSeverity,
         message: `Path does not exist: "${mentionedPath}"`,
         line: lineNumber >= 0 ? lineNumber + 1 : undefined,
         context: lineNumber >= 0 ? parsed.lines[lineNumber]?.trim() : undefined,

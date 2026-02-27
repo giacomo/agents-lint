@@ -1,4 +1,4 @@
-import type { LintReport, CheckResult, LintIssue, Severity } from './types.js';
+import type { LintReport, MultiLintReport, CheckResult, LintIssue, Severity } from './types.js';
 
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
@@ -48,7 +48,7 @@ export function formatReport(report: LintReport): string {
 
   // Header
   lines.push('');
-  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.1.0${RESET}`);
+  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.2.0${RESET}`);
   lines.push(`${DIM}${'─'.repeat(60)}${RESET}`);
   lines.push(`${BOLD}File:${RESET} ${report.file}`);
   lines.push('');
@@ -143,4 +143,87 @@ export function computeScore(results: CheckResult[]): number {
   const baseScore = totalChecks > 0 ? (totalPassed / totalChecks) * 100 : 100;
   const finalScore = Math.max(0, Math.min(100, Math.round(baseScore - weightedPenalty)));
   return finalScore;
+}
+
+// ── Multi-file report formatting ──────────────────────────────────────────────
+
+export function formatMultiReport(multi: MultiLintReport): string {
+  // Single-file: delegate to the existing formatter (no visible change)
+  if (multi.files.length === 1) {
+    return formatReport(multi.reports[0]);
+  }
+
+  const lines: string[] = [];
+
+  // Header
+  lines.push('');
+  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.2.0${RESET}`);
+  lines.push(`${DIM}${'─'.repeat(60)}${RESET}`);
+  lines.push(`${BOLD}Found ${multi.files.length} context files:${RESET} ${multi.files.join(', ')}`);
+  lines.push('');
+
+  // Per-file summaries
+  for (const report of multi.reports) {
+    const sc = scoreColor(report.score);
+    const grade = scoreGrade(report.score);
+    lines.push(`${BOLD}File:${RESET} ${report.file}  ${DIM}·${RESET}  ${sc}${BOLD}${report.score}/100 (${grade})${RESET}`);
+
+    const fileIssues = report.results.flatMap((r) => r.issues);
+    if (fileIssues.length === 0) {
+      lines.push(`  ${GREEN}✓ No issues${RESET}`);
+    } else {
+      for (const checker of report.results) {
+        for (const issue of checker.issues) {
+          const icon = severityIcon(issue.severity);
+          const loc = issue.line ? `${GRAY}:${issue.line}${RESET}` : '';
+          lines.push(`  ${icon} ${issue.message}${loc}`);
+          if (issue.suggestion) {
+            lines.push(`    ${DIM}→ ${issue.suggestion}${RESET}`);
+          }
+        }
+      }
+    }
+    lines.push('');
+  }
+
+  // Cross-file consistency section
+  const crossIssues = multi.crossCheck.issues;
+  if (crossIssues.length > 0) {
+    lines.push(`${BOLD}${WHITE}Cross-File Consistency${RESET} ${DIM}(${crossIssues.length} issue${crossIssues.length !== 1 ? 's' : ''})${RESET}`);
+    for (const issue of crossIssues) {
+      const icon = severityIcon(issue.severity);
+      lines.push(`  ${icon} ${issue.message}`);
+      if (issue.context) {
+        lines.push(`    ${GRAY}${issue.context}${RESET}`);
+      }
+      if (issue.suggestion) {
+        lines.push(`    ${DIM}→ ${issue.suggestion}${RESET}`);
+      }
+      lines.push('');
+    }
+  }
+
+  // Summary
+  lines.push(`${DIM}${'─'.repeat(60)}${RESET}`);
+  const sc = scoreColor(multi.overallScore);
+  lines.push(`${BOLD}Overall:${RESET} ${sc}${BOLD}${multi.overallScore}/100${RESET}  ${DIM}·${RESET}  ` +
+    `${multi.totalErrors > 0 ? RED : GRAY}${multi.totalErrors} error${multi.totalErrors !== 1 ? 's' : ''}${RESET}  ` +
+    `${multi.totalWarnings > 0 ? YELLOW : GRAY}${multi.totalWarnings} warning${multi.totalWarnings !== 1 ? 's' : ''}${RESET}  ` +
+    `${multi.totalInfos > 0 ? BLUE : GRAY}${multi.totalInfos} info${RESET}`);
+  lines.push('');
+
+  if (multi.totalErrors > 0 || multi.overallScore < 50) {
+    lines.push(`${RED}Context rot detected. Agents reading different files may behave inconsistently.${RESET}`);
+  } else if (multi.totalWarnings > 0 || multi.overallScore < 80) {
+    lines.push(`${YELLOW}Some issues found. Review before running agents on this repo.${RESET}`);
+  } else {
+    lines.push(`${GREEN}All context files are fresh and consistent. ✓${RESET}`);
+  }
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+export function formatMultiJson(multi: MultiLintReport): string {
+  return JSON.stringify(multi, null, 2);
 }

@@ -9,7 +9,7 @@
 ```
 $ npx agents-lint
 
-agents-lint v0.1.0
+agents-lint v0.2.0
 ────────────────────────────────────────────────────────────
 
 File: AGENTS.md
@@ -75,7 +75,10 @@ npm install --save-dev agents-lint
 ## Usage
 
 ```bash
-# Lint AGENTS.md in current directory
+# Generate a starter AGENTS.md for this project
+agents-lint init
+
+# Lint AGENTS.md in current directory (also detects CLAUDE.md, GEMINI.md, .cursorrules)
 agents-lint
 
 # Lint a specific file
@@ -175,6 +178,63 @@ The weekly schedule is intentional — **context rot happens even when AGENTS.md
 
 ---
 
+## Supported file names
+
+`agents-lint` auto-detects any of these context files in the repo root:
+
+| File | Used by |
+|------|---------|
+| `AGENTS.md` | Codex, general |
+| `CLAUDE.md` | Claude Code |
+| `GEMINI.md` | Gemini CLI |
+| `COPILOT.md` | GitHub Copilot |
+| `.cursorrules` | Cursor |
+| `.github/copilot-instructions.md` | GitHub Copilot |
+
+Pass an explicit path to lint a differently-named file: `agents-lint ./docs/context.md`
+
+---
+
+## Quick start: `agents-lint init`
+
+Generate a well-structured starter file based on your project's detected stack:
+
+```bash
+npx agents-lint init
+```
+
+This creates `AGENTS.md` with sections for Setup, Structure, Testing, Build, and Conventions — pre-populated from your `package.json`. Fill in the `TODO` comments, then run `agents-lint` to validate.
+
+---
+
+## Custom rules (`.agents-lint.json`)
+
+Place `.agents-lint.json` in your repo root to override defaults:
+
+```json
+{
+  "requiredSections": ["Architecture", "Deployment"],
+  "ignorePatterns": ["./legacy", "node_modules"],
+  "severity": {
+    "missingPath": "warn",
+    "missingScript": "error",
+    "staleDependency": "warn",
+    "missingSection": "error"
+  }
+}
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `requiredSections` | `string[]` | Extra section names that must exist |
+| `ignorePatterns` | `string[]` | Substrings — matching paths/deps are skipped |
+| `severity.missingPath` | `error\|warn\|info` | Override severity for missing filesystem paths (default: `error`) |
+| `severity.missingScript` | `error\|warn\|info` | Override for missing npm scripts (default: `warn`) |
+| `severity.staleDependency` | `error\|warn\|info` | Override for deprecated packages (default: `info`) |
+| `severity.missingSection` | `error\|warn\|info` | Override for missing recommended sections (default: `warn`) |
+
+---
+
 ## Programmatic API
 
 ```typescript
@@ -218,12 +278,12 @@ EXIT CODES
 
 ## Roadmap
 
-- [ ] `--fix` mode: interactive suggestions for updating stale references
+- [x] `--fix` mode: interactive suggestions for updating stale references
 - [ ] VS Code extension with inline diagnostics
-- [ ] `agents-lint init` — generate a well-structured AGENTS.md from scratch
-- [ ] Support for `CLAUDE.md`, `GEMINI.md`, `.cursorrules`
+- [x] `agents-lint init` — generate a well-structured AGENTS.md from scratch
+- [x] Support for `CLAUDE.md`, `GEMINI.md`, `.cursorrules`
 - [ ] Git-blame integration: flag sections that haven't been touched in > 90 days
-- [ ] Custom rules via `.agents-lint.json` config
+- [x] Custom rules via `.agents-lint.json` config
 
 ---
 

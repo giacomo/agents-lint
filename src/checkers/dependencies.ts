@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CheckResult, LintIssue, ParsedAgentsMd } from '../types.js';
+import type { CheckResult, LintIssue, ParsedAgentsMd, LintConfig, Severity } from '../types.js';
 
 const DEPRECATED_PACKAGES: Record<string, string> = {
   'request': 'axios or node-fetch',
@@ -16,11 +16,14 @@ const DEPRECATED_PACKAGES: Record<string, string> = {
 
 export function checkDependencies(
   parsed: ParsedAgentsMd,
-  repoRoot: string
+  repoRoot: string,
+  config: LintConfig = {}
 ): CheckResult {
   const issues: LintIssue[] = [];
   let passed = 0;
   let failed = 0;
+  const staleDependencySeverity: Severity = config.severity?.staleDependency ?? 'info';
+  const ignorePatterns = config.ignorePatterns ?? [];
 
   const pkgPath = path.join(repoRoot, 'package.json');
   if (!fs.existsSync(pkgPath)) {
@@ -42,6 +45,7 @@ export function checkDependencies(
 
   // Check mentioned dependencies exist
   for (const dep of parsed.mentionedDependencies) {
+    if (ignorePatterns.some((p) => dep.includes(p))) continue;
     const normalized = dep.toLowerCase().replace(/^@types\//, '');
     const exists =
       allDeps.has(dep) ||
@@ -63,7 +67,7 @@ export function checkDependencies(
           severity: 'warn',
           message: `Package "${dep}" is mentioned but not found in package.json`,
           line: lineNumber >= 0 ? lineNumber + 1 : undefined,
-          suggestion: `Either add "${dep}" to package.json or remove the reference from AGENTS.md`,
+          suggestion: `Either add "${dep}" to package.json or remove the reference from this context file`,
         });
       }
     }
@@ -77,7 +81,7 @@ export function checkDependencies(
       );
       issues.push({
         rule: 'deprecated-dependency',
-        severity: 'info',
+        severity: staleDependencySeverity,
         message: `Package "${deprecated}" is deprecated`,
         line: lineNumber >= 0 ? lineNumber + 1 : undefined,
         suggestion: `Consider migrating to: ${replacement}`,
