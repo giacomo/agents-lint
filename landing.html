@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>agents-lint — Keep AGENTS.md fresh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --text: #e2e0f5;
+      --muted: #6e6c8a;
+      --accent: #7c6af7;
+      --accent2: #a78bfa;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --terminal-bg: #0d0d14;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Grid noise background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124,106,247,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,106,247,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,15,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    /* HERO */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124,106,247,.12);
+      border: 1px solid rgba(124,106,247,.25);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      color: var(--accent2);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 32px;
+      letter-spacing: .05em;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      margin-bottom: 20px;
+    }
+
+    h1 .accent { color: var(--accent2); }
+
+    .hero-sub {
+      font-size: 1.2rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      font-weight: 400;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s, transform .1s;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent2);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .2s, transform .1s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    /* TERMINAL */
+    .terminal-wrap {
+      margin: 64px auto 0;
+      max-width: 720px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 80px rgba(124,106,247,.12);
+    }
+
+    .terminal-bar {
+      background: #1a1a24;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-r { background: #ff5f56; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #27c93f; }
+
+    .terminal-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
+    .terminal-body {
+      background: var(--terminal-bg);
+      padding: 24px 28px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.75;
+      overflow-x: auto;
+    }
+
+    .t-cmd { color: var(--green); }
+    .t-dim { color: var(--muted); }
+    .t-head { color: var(--accent2); font-weight: 700; }
+    .t-score { color: var(--yellow); font-weight: 700; }
+    .t-score-bar-fill { color: var(--yellow); }
+    .t-score-bar-empty { color: #2a2a3a; }
+    .t-err { color: var(--red); }
+    .t-warn { color: var(--yellow); }
+    .t-info { color: var(--blue); }
+    .t-gray { color: var(--muted); }
+    .t-sug { color: #8b8baa; font-style: italic; }
+    .t-good { color: var(--green); font-weight: 700; }
+
+    /* WHY section */
+    .section { padding: 80px 0; }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: .15em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin-bottom: 48px;
+    }
+
+    /* Quote */
+    .quote-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .quote-grid { grid-template-columns: 1fr; }
+    }
+
+    .quote-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .quote-text {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 16px;
+      border-left: 3px solid var(--accent);
+      padding-left: 16px;
+    }
+
+    .quote-source {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Features grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(124,106,247,.4);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+    }
+
+    .feature-name {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* Score section */
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+    }
+
+    .score-table th {
+      text-align: left;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: .05em;
+    }
+
+    .score-table td {
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background: rgba(17,17,24,.5);
+    }
+
+    .grade-a { color: var(--green); font-weight: 700; }
+    .grade-b { color: #86efac; font-weight: 700; }
+    .grade-c { color: var(--yellow); font-weight: 700; }
+    .grade-d { color: #fb923c; font-weight: 700; }
+    .grade-f { color: var(--red); font-weight: 700; }
+
+    /* CI section */
+    .code-block {
+      background: var(--terminal-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    .code-comment { color: var(--muted); }
+    .code-key { color: var(--accent2); }
+    .code-str { color: var(--green); }
+    .code-num { color: var(--yellow); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--accent2); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">agents<span>-lint</span></a>
+  <ul class="nav-links">
+    <li><a href="#why">Why</a></li>
+    <li><a href="#checks">Checks</a></li>
+    <li><a href="#ci">CI</a></li>
+    <li><a href="https://github.com/giacomo/agents-lint">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="badge">v0.1.0 — now on npm</div>
+    <h1>Your <span class="accent">AGENTS.md</span><br>is probably lying.</h1>
+    <p class="hero-sub">
+      Detect stale paths, dead npm scripts, outdated framework patterns,
+      and context rot before they make your coding agents expensive and wrong.
+    </p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary">npx agents-lint</a>
+      <a href="https://github.com/giacomo/agents-lint" class="btn-secondary">View on GitHub →</a>
+    </div>
+
+    <!-- Terminal demo -->
+    <div class="terminal-wrap">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="terminal-title">~ my-project</span>
+      </div>
+      <div class="terminal-body">
+        <span class="t-cmd">$ npx agents-lint</span><br><br>
+        <span class="t-head">agents-lint</span> <span class="t-dim">v0.1.0</span><br>
+        <span class="t-dim">────────────────────────────────────────────────────────────</span><br>
+        <span class="t-dim">File: AGENTS.md</span><br><br>
+        <span class="t-dim">Freshness Score</span><br>
+        &nbsp;&nbsp;<span class="t-score-fill">████████</span><span class="t-score-bar-empty">░░░░░░░░░░░░</span>&nbsp;&nbsp;<span class="t-score">42/100 (F)</span><br><br>
+        <span class="t-head">Filesystem</span> <span class="t-dim">(2 issues)</span><br>
+        &nbsp;&nbsp;<span class="t-err">✖</span> Path does not exist: <span class="t-dim">"./src/services/auth"</span>&nbsp;&nbsp;<span class="t-gray">:23</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Remove this reference or update to the correct path.</span><br><br>
+        &nbsp;&nbsp;<span class="t-err">✖</span> Path does not exist: <span class="t-dim">"./packages/ui"</span>&nbsp;&nbsp;<span class="t-gray">:41</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Did the monorepo structure change?</span><br><br>
+        <span class="t-head">Framework Staleness</span> <span class="t-dim">(1 issue)</span><br>
+        &nbsp;&nbsp;<span class="t-warn">⚠</span> References NgModules — Angular 14+ uses standalone components<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-gray">@NgModule({ declarations: [...] })</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Update to reflect standalone component architecture.</span><br><br>
+        <span class="t-dim">────────────────────────────────────────────────────────────</span><br>
+        <span class="t-err">2 errors</span>&nbsp;&nbsp;<span class="t-warn">1 warning</span>&nbsp;&nbsp;<span class="t-dim">0 info</span><br>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- WHY -->
+<section class="section" id="why">
+  <div class="container">
+    <div class="section-label">Research-backed</div>
+    <h2 class="section-title">Context rot is a real cost.</h2>
+    <p class="section-sub">
+      Two peer-reviewed studies in 2026 quantified what many teams had
+      experienced: stale AGENTS.md files make your agents worse <em>and</em> more expensive.
+    </p>
+    <div class="quote-grid">
+      <div class="quote-card">
+        <p class="quote-text">
+          "LLM-generated context files reduced task success by 2–3% while
+          increasing cost by over 20%."
+        </p>
+        <span class="quote-source">— ETH Zurich, ICSE 2026</span>
+      </div>
+      <div class="quote-card">
+        <p class="quote-text">
+          "None of the major coding agents expose lifecycle hooks for keeping
+          context files accurate. That's a tooling gap waiting to be filled."
+        </p>
+        <span class="quote-source">— Addy Osmani, Google Chrome, Feb 2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- CHECKS -->
+<section class="section" id="checks">
+  <div class="container">
+    <div class="section-label">What it checks</div>
+    <h2 class="section-title">Five categories of rot.</h2>
+    <p class="section-sub">
+      Each checker is independent. Run all of them in seconds,
+      no dependencies needed.
+    </p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📁</div>
+        <div class="feature-name">Filesystem</div>
+        <p class="feature-desc">
+          Every path mentioned in your AGENTS.md is verified to exist on disk.
+          Catches renamed directories, deleted packages, restructured monorepos.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <div class="feature-name">npm Scripts</div>
+        <p class="feature-desc">
+          Validates that every <code>npm run &lt;script&gt;</code> mentioned
+          exists in package.json. Supports workspaces and monorepos automatically.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <div class="feature-name">Dependencies</div>
+        <p class="feature-desc">
+          Detects references to packages not in package.json, and flags
+          deprecated packages like <code>moment</code>, <code>request</code>,
+          <code>tslint</code>.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <div class="feature-name">Framework Staleness</div>
+        <p class="feature-desc">
+          Catches outdated patterns: NgModules in Angular 14+, ReactDOM.render()
+          in React 19, getInitialProps in Next.js App Router, CommonJS in ESM projects.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div class="feature-name">Structure</div>
+        <p class="feature-desc">
+          Checks for recommended sections (Setup, Testing, Build),
+          context bloat, unresolved TODOs, and outdated year references.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <div class="feature-name">Freshness Score</div>
+        <p class="feature-desc">
+          Every run produces a 0–100 score with a letter grade. Errors cost
+          15 pts, warnings 7, infos 2. Set thresholds in CI.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SCORE TABLE -->
+<section class="section">
+  <div class="container">
+    <div class="section-label">Scoring</div>
+    <h2 class="section-title">Know your grade.</h2>
+    <p class="section-sub">
+      Set a minimum score in CI. Fail the build before agents start
+      producing costly wrong answers.
+    </p>
+    <table class="score-table">
+      <thead>
+        <tr>
+          <th>Score</th>
+          <th>Grade</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>90–100</td><td class="grade-a">A</td><td>Fresh and accurate — ready for agents</td></tr>
+        <tr><td>80–89</td><td class="grade-b">B</td><td>Minor issues, still reliable</td></tr>
+        <tr><td>70–79</td><td class="grade-c">C</td><td>Some stale references, review recommended</td></tr>
+        <tr><td>50–69</td><td class="grade-d">D</td><td>Significant context rot</td></tr>
+        <tr><td>0–49</td><td class="grade-f">F</td><td>Agents may produce incorrect or costly outputs</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- CI -->
+<section class="section" id="ci">
+  <div class="container">
+    <div class="section-label">GitHub Actions</div>
+    <h2 class="section-title">Automate it. Set and forget.</h2>
+    <p class="section-sub">
+      The weekly schedule is intentional — context rot happens even
+      when AGENTS.md hasn't changed.
+    </p>
+    <div class="code-block">
+      <span class="code-comment"># .github/workflows/agents-lint.yml</span><br>
+      <span class="code-key">name</span>: agents-lint<br>
+      <span class="code-key">on</span>:<br>
+      &nbsp;&nbsp;<span class="code-key">push</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">paths</span>: [<span class="code-str">'AGENTS.md'</span>, <span class="code-str">'package.json'</span>]<br>
+      &nbsp;&nbsp;<span class="code-key">schedule</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;- <span class="code-key">cron</span>: <span class="code-str">'0 9 * * 1'</span>  <span class="code-comment"># Weekly Monday</span><br><br>
+      <span class="code-key">jobs</span>:<br>
+      &nbsp;&nbsp;<span class="code-key">lint</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">runs-on</span>: ubuntu-latest<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">steps</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="code-key">uses</span>: actions/checkout@v4<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="code-key">run</span>: npx agents-lint <span class="code-str">--max-warnings 5</span><br>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>
+    Built by <a href="https://giacomo.dev">Giacomo Barbalinardo</a> ·
+    <a href="https://github.com/giacomo/agents-lint">GitHub</a> ·
+    <a href="https://npmjs.com/package/agents-lint">npm</a> ·
+    MIT License
+  </p>
+  <p style="margin-top: 8px; color: #3a3a55; font-size: 0.78rem;">
+    AGENTS.md is a standard maintained by the
+    <a href="https://openai.com/index/agentic-ai-foundation/">Agentic AI Foundation</a>
+    (Linux Foundation)
+  </p>
+</footer>
+
+</body>
+</html>

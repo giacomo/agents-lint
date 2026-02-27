@@ -1,0 +1,63 @@
+{
+  "name": "agents-lint",
+  "version": "0.1.0",
+  "description": "Detect stale references and context rot in AGENTS.md files. Keep your AI coding agents accurate and cost-efficient.",
+  "keywords": [
+    "agents",
+    "AGENTS.md",
+    "lint",
+    "linter",
+    "context-engineering",
+    "ai-agents",
+    "mcp",
+    "coding-agents",
+    "claude",
+    "openai",
+    "copilot",
+    "cursor",
+    "freshness"
+  ],
+  "author": "Giacomo Barbalinardo <giacomo@giacomo.dev>",
+  "license": "MIT",
+  "homepage": "https://github.com/giacomo/agents-lint",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/giacomo/agents-lint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/giacomo/agents-lint/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "agents-lint": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**/*.ts",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,46 @@
+name: agents-lint
+
+on:
+  push:
+    paths:
+      - 'AGENTS.md'
+      - 'agents.md'
+      - '.agents.md'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'agents.md'
+      - '.agents.md'
+      - 'package.json'
+  schedule:
+    # Run weekly to catch context rot even if AGENTS.md hasn't changed
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  lint-agents-md:
+    runs-on: ubuntu-latest
+    name: Check AGENTS.md freshness
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run agents-lint
+        run: npx agents-lint --max-warnings 5
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agents-lint-report
+          path: agents-lint-report.json
+        continue-on-error: true
