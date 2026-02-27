@@ -419,6 +419,7 @@
   <ul class="nav-links">
     <li><a href="#why">Why</a></li>
     <li><a href="#checks">Checks</a></li>
+    <li><a href="#quickstart">Quick start</a></li>
     <li><a href="#ci">CI</a></li>
     <li><a href="https://github.com/giacomo/agents-lint">GitHub</a></li>
   </ul>
@@ -427,7 +428,7 @@
 <!-- HERO -->
 <section class="hero">
   <div class="container">
-    <div class="badge">v0.1.0 — now on npm</div>
+    <div class="badge">v0.2.0 — now on npm</div>
     <h1>Your <span class="accent">AGENTS.md</span><br>is probably lying.</h1>
     <p class="hero-sub">
       Detect stale paths, dead npm scripts, outdated framework patterns,
@@ -448,22 +449,21 @@
       </div>
       <div class="terminal-body">
         <span class="t-cmd">$ npx agents-lint</span><br><br>
-        <span class="t-head">agents-lint</span> <span class="t-dim">v0.1.0</span><br>
+        <span class="t-head">agents-lint</span> <span class="t-dim">v0.2.0</span><br>
         <span class="t-dim">────────────────────────────────────────────────────────────</span><br>
-        <span class="t-dim">File: AGENTS.md</span><br><br>
-        <span class="t-dim">Freshness Score</span><br>
-        &nbsp;&nbsp;<span class="t-score-fill">████████</span><span class="t-score-bar-empty">░░░░░░░░░░░░</span>&nbsp;&nbsp;<span class="t-score">42/100 (F)</span><br><br>
-        <span class="t-head">Filesystem</span> <span class="t-dim">(2 issues)</span><br>
-        &nbsp;&nbsp;<span class="t-err">✖</span> Path does not exist: <span class="t-dim">"./src/services/auth"</span>&nbsp;&nbsp;<span class="t-gray">:23</span><br>
-        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Remove this reference or update to the correct path.</span><br><br>
-        &nbsp;&nbsp;<span class="t-err">✖</span> Path does not exist: <span class="t-dim">"./packages/ui"</span>&nbsp;&nbsp;<span class="t-gray">:41</span><br>
-        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Did the monorepo structure change?</span><br><br>
-        <span class="t-head">Framework Staleness</span> <span class="t-dim">(1 issue)</span><br>
-        &nbsp;&nbsp;<span class="t-warn">⚠</span> References NgModules — Angular 14+ uses standalone components<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-gray">@NgModule({ declarations: [...] })</span><br>
-        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Update to reflect standalone component architecture.</span><br><br>
+        <span class="t-dim">Found 2 context files: AGENTS.md, CLAUDE.md</span><br><br>
+        <span class="t-dim">File:</span> AGENTS.md &nbsp;<span class="t-dim">·</span>&nbsp; <span class="t-good">92/100 (A)</span><br>
+        &nbsp;&nbsp;<span class="t-good">✓ No issues</span><br><br>
+        <span class="t-dim">File:</span> CLAUDE.md &nbsp;<span class="t-dim">·</span>&nbsp; <span class="t-warn">78/100 (C)</span><br>
+        &nbsp;&nbsp;<span class="t-warn">⚠</span> No testing section found<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Add a "Testing" section with the exact test command.</span><br><br>
+        <span class="t-head">Cross-File Consistency</span> <span class="t-dim">(1 issue)</span><br>
+        &nbsp;&nbsp;<span class="t-err">✖</span> Conflicting test commands<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-gray">AGENTS.md → npm run test</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-gray">CLAUDE.md → npm run test:unit</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-sug">→ Align test commands across all context files.</span><br><br>
         <span class="t-dim">────────────────────────────────────────────────────────────</span><br>
-        <span class="t-err">2 errors</span>&nbsp;&nbsp;<span class="t-warn">1 warning</span>&nbsp;&nbsp;<span class="t-dim">0 info</span><br>
+        <span class="t-dim">Overall: </span><span class="t-warn">85/100</span>&nbsp;&nbsp;<span class="t-err">1 error</span>&nbsp;&nbsp;<span class="t-warn">1 warning</span>&nbsp;&nbsp;<span class="t-dim">0 info</span><br>
       </div>
     </div>
   </div>
@@ -505,7 +505,7 @@
 <section class="section" id="checks">
   <div class="container">
     <div class="section-label">What it checks</div>
-    <h2 class="section-title">Five categories of rot.</h2>
+    <h2 class="section-title">Six categories of rot.</h2>
     <p class="section-sub">
       Each checker is independent. Run all of them in seconds,
       no dependencies needed.
@@ -553,6 +553,15 @@
         </p>
       </div>
       <div class="feature-card">
+        <div class="feature-icon">🔀</div>
+        <div class="feature-name">Cross-File Consistency</div>
+        <p class="feature-desc">
+          When multiple context files exist (AGENTS.md + CLAUDE.md, etc.),
+          flags conflicts: different test commands, package managers, or paths
+          documented in one file but not the other.
+        </p>
+      </div>
+      <div class="feature-card">
         <div class="feature-icon">🏆</div>
         <div class="feature-name">Freshness Score</div>
         <p class="feature-desc">
@@ -591,6 +600,61 @@
         <tr><td>0–49</td><td class="grade-f">F</td><td>Agents may produce incorrect or costly outputs</td></tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- QUICK START -->
+<section class="section" id="quickstart">
+  <div class="container">
+    <div class="section-label">Quick start</div>
+    <h2 class="section-title">Zero config. Three commands.</h2>
+    <p class="section-sub">No install required. Works with any repo that has a context file.</p>
+    <div class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <div class="feature-name">Generate a starter file</div>
+        <div class="code-block" style="margin-top: 12px; font-size: 0.78rem;">
+          <span class="t-cmd">$ npx agents-lint init</span><br>
+          <span class="t-good">✓</span> Created AGENTS.md<br>
+          <span class="t-dim">Fill in the TODO sections,</span><br>
+          <span class="t-dim">then run agents-lint to validate.</span>
+        </div>
+        <p class="feature-desc" style="margin-top: 12px;">
+          Detects your stack (React, Next.js, Vue…), test runner, and package manager.
+          Pre-populates sections from package.json.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-name">Lint all context files</div>
+        <div class="code-block" style="margin-top: 12px; font-size: 0.78rem;">
+          <span class="t-cmd">$ npx agents-lint</span><br>
+          <span class="t-dim">Auto-detects AGENTS.md,</span><br>
+          <span class="t-dim">CLAUDE.md, GEMINI.md,</span><br>
+          <span class="t-dim">.cursorrules, and more.</span>
+        </div>
+        <p class="feature-desc" style="margin-top: 12px;">
+          Lints each file independently, then cross-checks for conflicts between them.
+          Pass a path to lint a specific file.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛠️</div>
+        <div class="feature-name">Interactive fix mode</div>
+        <div class="code-block" style="margin-top: 12px; font-size: 0.78rem;">
+          <span class="t-cmd">$ npx agents-lint --fix</span><br>
+          <span class="t-dim">Remove stale path on :23?</span><br>
+          <span class="t-dim">[y/n] </span><span class="t-warn">y</span><br>
+          <span class="t-good">✓</span> <span class="t-dim">Line removed.</span>
+        </div>
+        <p class="feature-desc" style="margin-top: 12px;">
+          Walk through each issue and accept or skip the suggested fix.
+          Changes are applied atomically — all at once or not at all.
+        </p>
+      </div>
+    </div>
   </div>
 </section>
 
