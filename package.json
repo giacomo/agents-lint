@@ -22,7 +22,7 @@
   "homepage": "https://github.com/giacomo/agents-lint",
   "repository": {
     "type": "git",
-    "url": "https://github.com/giacomo/agents-lint.git"
+    "url": "git+https://github.com/giacomo/agents-lint.git"
   },
   "bugs": {
     "url": "https://github.com/giacomo/agents-lint/issues"
@@ -37,10 +37,14 @@
     }
   },
   "bin": {
-    "agents-lint": "./dist/cli.js"
+    "agents-lint": "dist/cli.js"
   },
   "files": [
-    "dist",
+    "dist/checkers",
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/*.js.map",
+    "dist/*.d.ts.map",
     "README.md",
     "LICENSE"
   ],
