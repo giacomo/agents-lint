@@ -24,6 +24,23 @@ const DEPENDENCY_PATTERNS = [
   /\b(react|vue|angular|next|nuxt|svelte|solid|astro|remix|express|fastify|hono|nestjs|prisma|drizzle|zod|typescript)\b/gi,
 ];
 
+// Phrases that indicate a path is being referenced as absent/removed, not as a live location
+const NEGATING_PHRASES = [
+  /no longer/i,
+  /removed/i,
+  /not exist/i,
+  /doesn't exist/i,
+  /does not exist/i,
+  /deprecated/i,
+];
+
+function isInNegatingContext(content: string, matchIndex: number): boolean {
+  const lineStart = content.lastIndexOf('\n', matchIndex) + 1;
+  const lineEnd = content.indexOf('\n', matchIndex);
+  const line = content.substring(lineStart, lineEnd === -1 ? content.length : lineEnd);
+  return NEGATING_PHRASES.some((p) => p.test(line));
+}
+
 const FRAMEWORK_PATTERNS: Record<string, RegExp[]> = {
   angular: [/NgModule/g, /forRoot\(\)/g, /ngcc/g, /ViewChild/g],
   react: [/React\.Component/g, /componentDidMount/g, /componentWillMount/g],
@@ -92,6 +109,8 @@ function extractPaths(content: string): string[] {
       const candidate = match[1];
       // Filter: must look like a real path
       if (candidate && (candidate.startsWith('./') || candidate.startsWith('../') || candidate.startsWith('/') || candidate.includes('/'))) {
+        // Skip paths mentioned in a negating context (e.g. "no longer exists in `app/Http/Kernel.php`")
+        if (isInNegatingContext(content, match.index)) continue;
         // Remove trailing punctuation
         paths.add(candidate.replace(/[,;:.]$/, ''));
       }

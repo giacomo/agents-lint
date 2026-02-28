@@ -8,12 +8,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm install          # install dev dependencies (typescript, @types/node only)
 npm run build        # compile src/ → dist/ via tsc
 npm run dev          # watch mode compilation
-npm test             # run Jest (requires --experimental-vm-modules)
+npm test             # compile + run all tests via Node built-in test runner
 npm start            # run dist/cli.js against cwd
 node dist/cli.js --root /path/to/repo   # test against an external repo
 ```
 
 No external runtime dependencies — only `typescript` and `@types/node` in devDependencies.
+
+## Testing
+
+Tests use the **Node.js built-in test runner** (`node:test` + `node:assert/strict`) — no extra packages needed.
+
+```bash
+npm test                                           # compile + run all 41 tests
+node --test dist/tests/parser.test.js              # run a single test file
+node --test dist/tests/checkers/filesystem.test.js # run one checker's tests
+```
+
+**Test layout** (mirrors `src/` structure):
+```
+src/tests/
+  helpers.ts                  # writeTmp(), makeParsed(), makeTmpRepo(), parsedFromContent()
+  parser.test.ts              # parseAgentsMd() — path extraction, negation context, scripts, sections
+  reporter.test.ts            # computeScore() — penalty math, floor/ceiling
+  checkers/
+    filesystem.test.ts        # path existence, ignorePatterns, custom severity
+    npm-scripts.test.ts       # script validation, missing-test-script warning
+    structure.test.ts         # section detection, TODO markers, stale years
+    dependencies.test.ts      # dep presence, deprecated packages
+    framework.test.ts         # ReactDOM.render, @NgModule, Node version refs
+```
+
+Each checker test creates isolated temp directories with `makeTmpRepo()` and cleans up in `finally` blocks. Tests compile into `dist/tests/` alongside source output.
 
 ## Architecture
 

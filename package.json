@@ -1,6 +1,6 @@
 {
   "name": "agents-lint",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Detect stale references and context rot in AGENTS.md files. Keep your AI coding agents accurate and cost-efficient.",
   "keywords": [
     "agents",
@@ -51,8 +51,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src/**/*.ts",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
-    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+    "test": "tsc && node --test \"dist/tests/**/*.test.js\"",
+    "test:watch": "tsc --watch",
     "prepublishOnly": "npm run build",
     "start": "node dist/cli.js"
   },

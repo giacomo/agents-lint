@@ -35,19 +35,33 @@ src/
     framework.ts     Framework-specific staleness checks
     structure.ts     Validates recommended sections and quality
     cross.ts         Cross-file consistency (PM, scripts, paths)
+  tests/
+    helpers.ts       Shared test utilities (writeTmp, makeParsed, …)
+    parser.test.ts
+    reporter.test.ts
+    checkers/        One test file per checker
 ```
 
 ## Testing
 
+Tests use the **Node.js built-in test runner** — no extra packages required.
+
 ```bash
-npm test
+npm test                                           # compile + run all tests
+node --test dist/tests/parser.test.js              # run a single test file
+node --test dist/tests/checkers/filesystem.test.js # run one checker's tests
 ```
+
+Test files live in `src/tests/` and compile to `dist/tests/` alongside the source.
+Shared utilities (`writeTmp`, `makeParsed`, `makeTmpRepo`, `parsedFromContent`) are in `src/tests/helpers.ts`.
 
 To test manually against a real repo:
 ```bash
 npm run build
 node dist/cli.js --root /path/to/some/repo
 ```
+
+When adding a new checker, add a corresponding `src/tests/checkers/my-checker.test.ts`.
 
 ## Build
 
