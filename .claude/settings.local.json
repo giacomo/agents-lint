@@ -14,7 +14,8 @@
       "Bash(npm test:*)",
       "Bash(npm install:*)",
       "Bash(npm pack:*)",
-      "Bash(npm pkg:*)"
+      "Bash(npm pkg:*)",
+      "WebFetch(domain:angular.dev)"
     ]
   }
 }
