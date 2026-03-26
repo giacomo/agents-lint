@@ -9,7 +9,7 @@
 ```
 $ npx agents-lint
 
-agents-lint v0.4.5
+agents-lint v0.5.0
 ────────────────────────────────────────────────────────────
 Found 3 context files: AGENTS.md, CLAUDE.md, ~/.claude/projects/my-repo/memory/MEMORY.md
 
@@ -119,11 +119,19 @@ Catches outdated patterns for your detected framework:
 | Framework | Example check |
 |-----------|---------------|
 | Angular   | `@NgModule` in an Angular 14+ project |
-| Angular   | `ngcc` references (removed in v16) |
+| Angular   | `@Input()`/`@Output()` decorators (prefer signal-based `input()`/`output()` in Angular 17+) |
+| Angular   | `::ng-deep` (deprecated Angular 14+) |
+| Angular   | Constructor injection (prefer `inject()` in Angular 17+) |
+| Angular   | `NgClass`/`NgStyle` directives (prefer native class/style bindings) |
 | React     | `ReactDOM.render()` (removed in React 19) |
 | React     | Class component lifecycle methods |
 | Next.js   | `getInitialProps` (legacy API) |
 | Node.js   | CommonJS in ESM projects |
+| Symfony   | `SwiftMailer` (removed in Symfony 6), `@Route` annotations, `FOSUserBundle` |
+| Laravel   | String-based routing, `make:auth`, `str_singular()`/`str_plural()` |
+| Django    | `django.conf.urls.url()`, `ugettext`, `force_text` (all removed in Django 4.0) |
+| Zend      | Any `Zend_`/`ZendFramework` reference (abandoned 2019, superseded by Laminas) |
+| PHP (any) | `mailhog` references (unmaintained, replaced by Mailpit) |
 
 ### 📋 Structure
 Checks for recommended sections (Setup, Testing, Build) and quality indicators:
