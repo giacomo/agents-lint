@@ -1,6 +1,6 @@
 {
   "name": "agents-lint",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Detect stale references and context rot in AGENTS.md files. Keep your AI coding agents accurate and cost-efficient.",
   "keywords": [
     "agents",

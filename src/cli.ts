@@ -6,7 +6,7 @@ import { formatReport, formatJson, formatMultiReport, formatMultiJson } from './
 import { generateAgentsMd } from './init.js';
 import { runFixMode, runMultiFixMode } from './fix.js';
 
-const VERSION = '0.4.2';
+const VERSION = '0.4.3';
 
 const HELP = `
 agents-lint v${VERSION}
