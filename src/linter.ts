@@ -81,8 +81,8 @@ export async function lint(options: LintOptions = {}): Promise<LintReport> {
   // Run all checkers
   const results: CheckResult[] = [
     checkStructure(parsed, config),
-    checkFilesystem(parsed, repoRoot, config),
     ...(parsed.fileType === 'memory' ? [] : [
+      checkFilesystem(parsed, repoRoot, config),
       checkNpmScripts(parsed, repoRoot, config),
       checkDependencies(parsed, repoRoot, config),
       checkFrameworkStaleness(parsed, repoRoot),

@@ -173,7 +173,7 @@ export async function runMultiFixMode(
     console.log(`${B}Per-file issues${R} — run fix on each file individually:`);
     for (const report of multi.reports) {
       if (report.totalIssues > 0) {
-        console.log(`  ${CY}agents-lint --fix ${report.file}${R}`);
+        console.log(`  ${CY}agents-lint --fix ${report.file.replace(/\\/g, '/')}${R}`);
       }
     }
     console.log('');

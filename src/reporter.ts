@@ -48,7 +48,7 @@ export function formatReport(report: LintReport): string {
 
   // Header
   lines.push('');
-  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.2.0${RESET}`);
+  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.4.1${RESET}`);
   lines.push(`${DIM}${'─'.repeat(60)}${RESET}`);
   lines.push(`${BOLD}File:${RESET} ${report.file}`);
   lines.push('');
@@ -157,7 +157,7 @@ export function formatMultiReport(multi: MultiLintReport): string {
 
   // Header
   lines.push('');
-  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.2.0${RESET}`);
+  lines.push(`${BOLD}${CYAN}agents-lint${RESET} ${DIM}v0.4.1${RESET}`);
   lines.push(`${DIM}${'─'.repeat(60)}${RESET}`);
   lines.push(`${BOLD}Found ${multi.files.length} context files:${RESET} ${multi.files.join(', ')}`);
   lines.push('');
