@@ -87,6 +87,11 @@ export function checkStructure(parsed: ParsedAgentsMd, config: LintConfig = {}):
     });
   }
 
+  // Memory files don't need setup/test/build sections — skip section checks
+  if (parsed.fileType === 'memory') {
+    sectionsToCheck.length = 0;
+  }
+
   // Check for recommended sections
   for (const section of sectionsToCheck) {
     const sectionTitles = parsed.sections.map((s) => s.title.toLowerCase());

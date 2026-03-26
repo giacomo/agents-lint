@@ -4,13 +4,13 @@ import * as path from 'path';
 import { lint, lintAll } from './linter.js';
 import { formatReport, formatJson, formatMultiReport, formatMultiJson } from './reporter.js';
 import { generateAgentsMd } from './init.js';
-import { runFixMode } from './fix.js';
+import { runFixMode, runMultiFixMode } from './fix.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.4.0';
 
 const HELP = `
 agents-lint v${VERSION}
-Detect stale references and context rot in your AGENTS.md / CLAUDE.md / GEMINI.md files.
+Detect stale references and context rot in your AGENTS.md / CLAUDE.md / GEMINI.md / MEMORY.md files.
 
 USAGE
   agents-lint [file] [options]
@@ -167,18 +167,14 @@ async function main() {
       // ── Auto-detect: may find multiple files ──────────────────────────────
       const multi = await lintAll({ repoRoot });
 
-      // --fix with multiple files requires an explicit file path
+      // --fix: multi-file mode handles cross-file issues; directs user for per-file fixes
       if (fix) {
-        if (multi.files.length > 1) {
-          console.error(
-            `\n\x1b[31m✖\x1b[0m --fix requires an explicit file when multiple context files exist.\n` +
-            `  Specify one: ${multi.files.map((f) => `agents-lint --fix ${f}`).join('  or  ')}\n`
-          );
-          process.exit(2);
+        if (multi.files.length === 1) {
+          const absoluteFilePath = path.resolve(repoRoot, multi.reports[0].file);
+          await runFixMode(multi.reports[0], absoluteFilePath);
+        } else {
+          await runMultiFixMode(multi, repoRoot);
         }
-        // Single file found — run fix mode
-        const absoluteFilePath = path.resolve(repoRoot, multi.reports[0].file);
-        await runFixMode(multi.reports[0], absoluteFilePath);
         process.exit(0);
       }
 

@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import * as fs from 'fs';
-import type { LintReport, LintIssue } from './types.js';
+import * as path from 'path';
+import type { LintReport, LintIssue, MultiLintReport } from './types.js';
 
 // ── ANSI helpers ──────────────────────────────────────────────────────────────
 const R  = '\x1b[0m';
@@ -24,7 +25,13 @@ interface AddSectionFix {
   content: string;
 }
 
-type FixAction = RemoveLineFix | AddSectionFix;
+interface AddToIgnoreFix {
+  type: 'add-to-ignore';
+  pattern: string;
+  configPath: string;
+}
+
+type FixAction = RemoveLineFix | AddSectionFix | AddToIgnoreFix;
 
 // ── Section templates ─────────────────────────────────────────────────────────
 
@@ -118,6 +125,138 @@ function icon(severity: string): string {
   return `${CY}ℹ${R}`;
 }
 
+// ── add-to-ignore applier ──────────────────────────────────────────────────────
+
+function applyAddToIgnore(pattern: string, configPath: string): void {
+  let config: Record<string, unknown> = {};
+  if (fs.existsSync(configPath)) {
+    try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch { /* use empty */ }
+  }
+  const existing = Array.isArray(config.ignorePatterns) ? config.ignorePatterns as string[] : [];
+  if (!existing.includes(pattern)) {
+    config.ignorePatterns = [...existing, pattern];
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+}
+
+// ── Cross-fix action builder ───────────────────────────────────────────────────
+
+function buildCrossFixAction(issue: LintIssue, repoRoot: string): AddToIgnoreFix | null {
+  if (issue.rule === 'cross-path-asymmetry') {
+    const match = /"([^"]+)"/.exec(issue.message);
+    if (match) {
+      return {
+        type: 'add-to-ignore',
+        pattern: match[1],
+        configPath: path.join(repoRoot, '.agents-lint.json'),
+      };
+    }
+  }
+  return null;
+}
+
+// ── Multi-file fix mode ────────────────────────────────────────────────────────
+
+export async function runMultiFixMode(
+  multi: MultiLintReport,
+  repoRoot: string,
+): Promise<void> {
+  const crossIssues = multi.crossCheck.issues;
+  const perFileIssues = multi.reports.reduce((s, r) => s + r.totalIssues, 0);
+
+  console.log('');
+  console.log(`${B}${CY}agents-lint${R} ${DM}— Fix Mode${R}`);
+  console.log(`${DM}${'─'.repeat(60)}${R}`);
+
+  // Direct user to per-file fix for individual file issues
+  if (perFileIssues > 0) {
+    console.log(`${B}Per-file issues${R} — run fix on each file individually:`);
+    for (const report of multi.reports) {
+      if (report.totalIssues > 0) {
+        console.log(`  ${CY}agents-lint --fix ${report.file}${R}`);
+      }
+    }
+    console.log('');
+  }
+
+  if (crossIssues.length === 0) {
+    console.log(`${GR}✓ No cross-file issues to fix.${R}\n`);
+    return;
+  }
+
+  const fixable = crossIssues.filter((i) => buildCrossFixAction(i, repoRoot) !== null);
+  const advisory = crossIssues.filter((i) => buildCrossFixAction(i, repoRoot) === null);
+
+  console.log(`${B}Cross-file issues${R}  ${DM}·  ${fixable.length} fixable, ${advisory.length} advisory${R}`);
+  console.log('');
+
+  const isTTY = Boolean(process.stdin.isTTY);
+  const preloaded = isTTY ? null : await readAllStdinLines();
+  const rl = isTTY
+    ? readline.createInterface({ input: process.stdin, output: process.stdout })
+    : null;
+  const ask = makeAsker(preloaded, rl);
+
+  const pendingIgnores: AddToIgnoreFix[] = [];
+  let issueIndex = 0;
+  let quit = false;
+
+  for (const issue of crossIssues) {
+    if (quit) break;
+
+    const fix = buildCrossFixAction(issue, repoRoot);
+
+    if (!fix) {
+      console.log(`${DM}${icon(issue.severity)} ${issue.message}${R}`);
+      if (issue.suggestion) console.log(`  ${DM}→ ${issue.suggestion}${R}`);
+      console.log(`  ${GY}(no auto-fix available — edit files manually)${R}`);
+      console.log('');
+      continue;
+    }
+
+    issueIndex++;
+    console.log(`Issue ${issueIndex}/${fixable.length}  ${DM}[fixable]${R}`);
+    console.log(`  ${icon(issue.severity)} ${B}${issue.message}${R}`);
+    console.log('');
+    console.log(`  ${B}Fix:${R} Add ${GY}"${fix.pattern}"${R} to ${CY}ignorePatterns${R} in ${fix.configPath}`);
+    console.log('');
+
+    const answer = await ask(`  ${B}Apply?${R} (y)es / (n)o / (q)uit  ${GY}›${R} `);
+
+    if (answer === 'q' || answer === 'quit') {
+      console.log(`  ${DM}Quit — remaining issues skipped.${R}`);
+      quit = true;
+    } else if (answer === 'y' || answer === 'yes') {
+      pendingIgnores.push(fix);
+      console.log(`  ${GR}✓ Will add to ignorePatterns${R}`);
+    } else {
+      console.log(`  ${DM}Skipped.${R}`);
+    }
+    console.log('');
+  }
+
+  rl?.close();
+
+  if (pendingIgnores.length === 0) {
+    console.log(`${DM}No fixes applied.${R}\n`);
+    return;
+  }
+
+  console.log(`${DM}${'─'.repeat(60)}${R}`);
+  // Group by config file and apply together
+  const byConfig = new Map<string, string[]>();
+  for (const f of pendingIgnores) {
+    if (!byConfig.has(f.configPath)) byConfig.set(f.configPath, []);
+    byConfig.get(f.configPath)!.push(f.pattern);
+  }
+  for (const [configPath, patterns] of byConfig) {
+    for (const pattern of patterns) applyAddToIgnore(pattern, configPath);
+    const rel = path.relative(repoRoot, configPath);
+    console.log(`${GR}✓ Updated ${rel}${R} — added ${patterns.length} pattern${patterns.length !== 1 ? 's' : ''} to ignorePatterns`);
+  }
+  console.log(`\nRun ${CY}agents-lint${R} to check remaining issues.\n`);
+}
+
 // ── Main entry point ──────────────────────────────────────────────────────────
 
 export async function runFixMode(
@@ -192,7 +331,7 @@ export async function runFixMode(
         const lineContent = fileLines[fix.lineNumber - 1] ?? '';
         console.log(`  ${B}Fix:${R} Remove line ${fix.lineNumber}`);
         console.log(`  ${RD}- ${lineContent}${R}`);
-      } else {
+      } else if (fix.type === 'add-section') {
         console.log(`  ${B}Fix:${R} Add section at end of file`);
         for (const l of fix.content.split('\n')) {
           console.log(`  ${GR}+ ${l}${R}`);
@@ -211,7 +350,7 @@ export async function runFixMode(
         if (fix.type === 'remove-line') {
           linesToRemove.add(fix.lineNumber);
           console.log(`  ${GR}✓ Will remove line ${fix.lineNumber}${R}`);
-        } else {
+        } else if (fix.type === 'add-section') {
           sectionsToAdd.push(fix.content);
           console.log(`  ${GR}✓ Will add section${R}`);
         }

@@ -34,6 +34,8 @@ export interface ParsedSection {
   endLine: number;
 }
 
+export type FileType = 'context' | 'memory';
+
 export interface ParsedAgentsMd {
   rawContent: string;
   sections: ParsedSection[];
@@ -42,6 +44,7 @@ export interface ParsedAgentsMd {
   mentionedDependencies: string[];
   mentionedFrameworks: string[];
   lines: string[];
+  fileType: FileType;
 }
 
 export interface MultiLintReport {

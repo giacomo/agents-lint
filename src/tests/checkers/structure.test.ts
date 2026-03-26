@@ -59,3 +59,21 @@ test('respects custom requiredSections from config', () => {
   );
   assert.ok(custom, 'expected custom section issue for Architecture');
 });
+
+test('skips setup/test/build section checks for memory files', () => {
+  // Memory file with no setup/test/build sections — should get no section warnings
+  const parsed = parsedFromContent('# User Role\n\nThe user is a senior developer with Go expertise.\n');
+  parsed.fileType = 'memory';
+  const result = checkStructure(parsed);
+  const sectionIssues = result.issues.filter((i) => i.rule.startsWith('missing-'));
+  assert.strictEqual(sectionIssues.length, 0, 'memory files should not require setup/test/build sections');
+});
+
+test('still applies quality checks to memory files', () => {
+  const content = 'short'; // under 100 chars
+  const parsed = parsedFromContent(content);
+  parsed.fileType = 'memory';
+  const result = checkStructure(parsed);
+  const tooShort = result.issues.find((i) => i.rule === 'too-short');
+  assert.ok(tooShort, 'memory files should still be checked for minimum length');
+});

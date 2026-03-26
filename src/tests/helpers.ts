@@ -30,6 +30,7 @@ export function makeParsed(overrides: Partial<ParsedAgentsMd> = {}): ParsedAgent
     mentionedDependencies: [],
     mentionedFrameworks: [],
     lines: [],
+    fileType: 'context',
     ...overrides,
   };
 }

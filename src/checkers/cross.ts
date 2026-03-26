@@ -1,4 +1,4 @@
-import type { CheckResult, LintIssue, ParsedAgentsMd } from '../types.js';
+import type { CheckResult, LintIssue, ParsedAgentsMd, LintConfig } from '../types.js';
 
 export interface FileContext {
   relativePath: string;
@@ -47,8 +47,11 @@ function groupByRole(scripts: string[]): Map<string, Set<string>> {
 
 // ── Main checker ──────────────────────────────────────────────────────────────
 
-export function checkCrossConsistency(files: FileContext[]): CheckResult {
-  if (files.length < 2) {
+export function checkCrossConsistency(files: FileContext[], config: LintConfig = {}): CheckResult {
+  // Memory files serve a different purpose — exclude them from cross-consistency checks.
+  const contextFiles = files.filter((f) => f.parsed.fileType !== 'memory');
+
+  if (contextFiles.length < 2) {
     return { checker: 'cross-consistency', issues: [], passed: 0, failed: 0 };
   }
 
@@ -56,7 +59,7 @@ export function checkCrossConsistency(files: FileContext[]): CheckResult {
   let passed = 0;
 
   // ── Check 1: Package manager conflicts ─────────────────────────────────────
-  const pmByFile = files.map((f) => ({ rel: f.relativePath, pm: detectPM(f.parsed.rawContent) }));
+  const pmByFile = contextFiles.map((f) => ({ rel: f.relativePath, pm: detectPM(f.parsed.rawContent) }));
   const distinctPMs = [...new Set(pmByFile.map((f) => f.pm).filter((p): p is PM => p !== null))];
 
   if (distinctPMs.length > 1) {
@@ -76,7 +79,7 @@ export function checkCrossConsistency(files: FileContext[]): CheckResult {
   }
 
   // ── Check 2: Script role conflicts ─────────────────────────────────────────
-  const rolesByFile = files.map((f) => ({
+  const rolesByFile = contextFiles.map((f) => ({
     rel: f.relativePath,
     roles: groupByRole(f.parsed.mentionedScripts),
   }));
@@ -111,13 +114,13 @@ export function checkCrossConsistency(files: FileContext[]): CheckResult {
   // ── Check 3: One-sided path references (info, capped at 5) ─────────────────
   const allOtherPaths = (exclude: string) =>
     new Set(
-      files
+      contextFiles
         .filter((f) => f.relativePath !== exclude)
         .flatMap((f) => f.parsed.mentionedPaths),
     );
 
   let pathIssueCount = 0;
-  for (const file of files) {
+  for (const file of contextFiles) {
     if (pathIssueCount >= 5) break;
     const others = allOtherPaths(file.relativePath);
 
@@ -125,11 +128,14 @@ export function checkCrossConsistency(files: FileContext[]): CheckResult {
       if (pathIssueCount >= 5) break;
       // Only flag "significant" paths (≥ 3 segments, e.g. ./src/services/auth)
       if (p.split('/').filter(Boolean).length < 3) continue;
+      // Skip paths matching ignorePatterns
+      const ignored = (config.ignorePatterns ?? []).some((pat) => p.includes(pat) || pat.includes(p));
+      if (ignored) continue;
       // Skip if any other file mentions the same path or a related parent/child
       const covered = [...others].some((op) => op === p || p.startsWith(op + '/') || op.startsWith(p + '/'));
       if (!covered) {
         pathIssueCount++;
-        const others2 = files
+        const others2 = contextFiles
           .filter((f) => f.relativePath !== file.relativePath)
           .map((f) => f.relativePath)
           .join(', ');

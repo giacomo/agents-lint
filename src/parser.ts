@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ParsedAgentsMd, ParsedSection } from './types.js';
+import type { ParsedAgentsMd, ParsedSection, FileType } from './types.js';
 
 // Regex patterns for extracting references from markdown
 const PATH_PATTERNS = [
@@ -48,9 +48,23 @@ const FRAMEWORK_PATTERNS: Record<string, RegExp[]> = {
   node: [/require\(/g, /module\.exports/g],
 };
 
+const MEMORY_FRONTMATTER_RE = /^---\s*\n[\s\S]*?type:\s*(user|feedback|project|reference)[\s\S]*?\n---/;
+
+function detectFileType(filePath: string, content: string): FileType {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (normalized.includes('/.claude/') || normalized.startsWith('.claude/')) {
+    return 'memory';
+  }
+  if (MEMORY_FRONTMATTER_RE.test(content)) {
+    return 'memory';
+  }
+  return 'context';
+}
+
 export function parseAgentsMd(filePath: string): ParsedAgentsMd {
   const rawContent = fs.readFileSync(filePath, 'utf-8');
   const lines = rawContent.split('\n');
+  const fileType = detectFileType(filePath, rawContent);
 
   const sections = parseSections(lines);
   const mentionedPaths = extractPaths(rawContent);
@@ -66,6 +80,7 @@ export function parseAgentsMd(filePath: string): ParsedAgentsMd {
     mentionedDependencies,
     mentionedFrameworks,
     lines,
+    fileType,
   };
 }
 

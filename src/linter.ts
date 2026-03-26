@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { parseAgentsMd } from './parser.js';
 import { checkFilesystem } from './checkers/filesystem.js';
@@ -7,6 +8,7 @@ import { checkDependencies } from './checkers/dependencies.js';
 import { checkFrameworkStaleness } from './checkers/framework.js';
 import { checkStructure } from './checkers/structure.js';
 import { checkCrossConsistency } from './checkers/cross.js';
+import { checkMemoryFile } from './checkers/memory.js';
 import { computeScore } from './reporter.js';
 import { loadConfig } from './config.js';
 import type { LintReport, MultiLintReport, CheckResult } from './types.js';
@@ -18,7 +20,29 @@ export const AGENT_FILES = [
   'COPILOT.md',
   '.cursorrules',
   '.github/copilot-instructions.md',
+  '.claude/MEMORY.md',
 ];
+
+/**
+ * Derives the Claude Code project key from a repo path.
+ * Claude encodes the absolute path by replacing ':', '\', and '/' with '-'.
+ * e.g. C:\hacks\agents-lint → C--hacks-agents-lint
+ */
+function claudeProjectKey(repoRoot: string): string {
+  return path.resolve(repoRoot).replace(/[:\\/]/g, '-');
+}
+
+/**
+ * Returns all .md files in ~/.claude/projects/<key>/memory/ for the given repo.
+ * Returns [] if the directory doesn't exist.
+ */
+export function findClaudeMemoryFiles(repoRoot: string): string[] {
+  const memoryDir = path.join(os.homedir(), '.claude', 'projects', claudeProjectKey(repoRoot), 'memory');
+  if (!fs.existsSync(memoryDir)) return [];
+  return fs.readdirSync(memoryDir)
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => path.join(memoryDir, f));
+}
 
 export interface LintOptions {
   filePath?: string;
@@ -43,7 +67,7 @@ export async function lint(options: LintOptions = {}): Promise<LintReport> {
   if (!filePath || !fs.existsSync(filePath)) {
     throw new Error(
       `No context file found in ${repoRoot}.\n` +
-      `Supported files: AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md\n` +
+      `Supported files: AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md, .claude/MEMORY.md\n` +
       `Create one with: agents-lint init`
     );
   }
@@ -58,9 +82,12 @@ export async function lint(options: LintOptions = {}): Promise<LintReport> {
   const results: CheckResult[] = [
     checkStructure(parsed, config),
     checkFilesystem(parsed, repoRoot, config),
-    checkNpmScripts(parsed, repoRoot, config),
-    checkDependencies(parsed, repoRoot, config),
-    checkFrameworkStaleness(parsed, repoRoot),
+    ...(parsed.fileType === 'memory' ? [] : [
+      checkNpmScripts(parsed, repoRoot, config),
+      checkDependencies(parsed, repoRoot, config),
+      checkFrameworkStaleness(parsed, repoRoot),
+    ]),
+    ...(parsed.fileType === 'memory' ? [checkMemoryFile(parsed, filePath)] : []),
   ];
 
   // Compute stats
@@ -91,20 +118,23 @@ export async function lintAll(options: { repoRoot?: string } = {}): Promise<Mult
   // Deduplicate by lowercased resolved path so case-insensitive filesystems
   // (Windows, macOS) don't produce duplicate entries for AGENTS.md vs agents.md.
   const seen = new Set<string>();
-  const foundPaths = AGENT_FILES
-    .map((f) => path.join(repoRoot, f))
-    .filter((p) => {
-      if (!fs.existsSync(p)) return false;
-      const key = path.resolve(p).toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  const addIfNew = (p: string): boolean => {
+    if (!fs.existsSync(p)) return false;
+    const key = path.resolve(p).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  };
+
+  const foundPaths = [
+    ...AGENT_FILES.map((f) => path.join(repoRoot, f)),
+    ...findClaudeMemoryFiles(repoRoot),
+  ].filter(addIfNew);
 
   if (foundPaths.length === 0) {
     throw new Error(
       `No context file found in ${repoRoot}.\n` +
-      `Supported files: AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md\n` +
+      `Supported files: AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md, .claude/MEMORY.md\n` +
       `Create one with: agents-lint init`
     );
   }
@@ -119,7 +149,8 @@ export async function lintAll(options: { repoRoot?: string } = {}): Promise<Mult
     relativePath: path.relative(repoRoot, fp),
     parsed: parseAgentsMd(fp),
   }));
-  const crossCheck = checkCrossConsistency(fileContexts);
+  const config = loadConfig(repoRoot);
+  const crossCheck = checkCrossConsistency(fileContexts, config);
 
   const overallScore = Math.round(
     reports.reduce((sum, r) => sum + r.score, 0) / reports.length

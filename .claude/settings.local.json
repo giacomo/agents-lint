@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(printf:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm whoami:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm publish:*)",
+      "Bash(gh api:*)",
+      "Bash(npm test:*)",
+      "Bash(npm install:*)",
+      "Bash(npm pack:*)",
+      "Bash(npm pkg:*)"
+    ]
+  }
+}

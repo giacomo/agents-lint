@@ -1,3 +1,6 @@
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseAgentsMd } from '../parser.js';
@@ -112,6 +115,52 @@ test('parses headings into sections', () => {
     const titles = parsed.sections.map((s) => s.title);
     assert.ok(titles.includes('Setup'), `expected Setup in ${JSON.stringify(titles)}`);
     assert.ok(titles.includes('Testing'), `expected Testing in ${JSON.stringify(titles)}`);
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test('fileType defaults to context for a regular markdown file', () => {
+  const tmp = writeTmp('# My Docs\n\nSome content.\n');
+  try {
+    const parsed = parseAgentsMd(tmp);
+    assert.strictEqual(parsed.fileType, 'context');
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test('fileType is memory when path contains .claude/', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agents-lint-parser-'));
+  try {
+    const claudeDir = path.join(dir, '.claude');
+    fs.mkdirSync(claudeDir);
+    const filePath = path.join(claudeDir, 'MEMORY.md');
+    fs.writeFileSync(filePath, '# Memory\n\nSome notes.\n', 'utf-8');
+    const parsed = parseAgentsMd(filePath);
+    assert.strictEqual(parsed.fileType, 'memory');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('fileType is memory when content has memory frontmatter', () => {
+  const tmp = writeTmp(
+    '---\nname: User role\ndescription: Who the user is\ntype: user\n---\n\nThe user is a data scientist.\n',
+  );
+  try {
+    const parsed = parseAgentsMd(tmp);
+    assert.strictEqual(parsed.fileType, 'memory');
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test('fileType is context when frontmatter type is not a memory type', () => {
+  const tmp = writeTmp('---\ntitle: My Docs\nlayout: default\n---\n\n# Content\n');
+  try {
+    const parsed = parseAgentsMd(tmp);
+    assert.strictEqual(parsed.fileType, 'context');
   } finally {
     cleanupTmp(tmp);
   }
