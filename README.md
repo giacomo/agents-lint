@@ -9,7 +9,7 @@
 ```
 $ npx agents-lint
 
-agents-lint v0.4.0
+agents-lint v0.4.5
 ────────────────────────────────────────────────────────────
 Found 3 context files: AGENTS.md, CLAUDE.md, ~/.claude/projects/my-repo/memory/MEMORY.md
 

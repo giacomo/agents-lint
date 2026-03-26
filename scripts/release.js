@@ -62,21 +62,29 @@ const updatedReporter = reporter.replace(/v\d+\.\d+\.\d+/g, `v${version}`);
 writeFileSync(reporterPath, updatedReporter, 'utf-8');
 console.log(`\x1b[2m  src/reporter.ts → v${version}\x1b[0m`);
 
-// ── Step 4: Update landing.html ───────────────────────────────────────────────
+// ── Step 4: Update README.md ──────────────────────────────────────────────────
+
+const readmePath = resolveFilePath('../README.md');
+const readme = readFileSync(readmePath, 'utf-8');
+const updatedReadme = readme.replace(/agents-lint v\d+\.\d+\.\d+/, `agents-lint v${version}`);
+writeFileSync(readmePath, updatedReadme, 'utf-8');
+console.log(`\x1b[2m  README.md → agents-lint v${version}\x1b[0m`);
+
+// ── Step 5: Update landing.html ───────────────────────────────────────────────
 
 run('node scripts/update-landing-version.js');
 
-// ── Step 5: Build ─────────────────────────────────────────────────────────────
+// ── Step 6: Build ─────────────────────────────────────────────────────────────
 
 console.log('');
 run('npm run build');
 
-// ── Step 6: Test ──────────────────────────────────────────────────────────────
+// ── Step 7: Test ──────────────────────────────────────────────────────────────
 
 console.log('');
 run('npm test');
 
-// ── Step 7: Commit + tag + push ───────────────────────────────────────────────
+// ── Step 8: Commit + tag + push ───────────────────────────────────────────────
 
 console.log('');
 run('git add -A');
@@ -85,7 +93,7 @@ run(`git tag v${version}`);
 run('git push');
 run('git push --tags');
 
-// ── Step 8: Publish ───────────────────────────────────────────────────────────
+// ── Step 9: Publish ───────────────────────────────────────────────────────────
 
 console.log('');
 if (otp) {

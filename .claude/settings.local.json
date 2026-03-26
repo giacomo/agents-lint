@@ -15,7 +15,16 @@
       "Bash(npm install:*)",
       "Bash(npm pack:*)",
       "Bash(npm pkg:*)",
-      "WebFetch(domain:angular.dev)"
+      "WebFetch(domain:angular.dev)",
+      "WebFetch(domain:herd.laravel.com)",
+      "Bash(curl -s \"https://herd.laravel.com/docs/llms.txt\")",
+      "Bash(curl -s \"https://laravel.com/docs/llms.txt\")",
+      "Bash(curl -s \"https://laravel.com/docs/llms-full.txt\")",
+      "Bash(curl -sL \"https://laravel.com/docs/13.x/llms.txt\")",
+      "Bash(curl -s \"https://herd.laravel.com/docs/macos/migration-guides/sail.md\")",
+      "Bash(curl -s \"https://herd.laravel.com/docs/macos/migration-guides/mamp.md\")",
+      "Bash(curl -s \"https://herd.laravel.com/docs/macos/extending-herd/supported-frameworks.md\")",
+      "Bash(curl -s \"https://herd.laravel.com/docs/macos/guides/laravel.md\")"
     ]
   }
 }

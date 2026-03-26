@@ -169,6 +169,21 @@ const FRAMEWORK_CHECKS: Record<string, FrameworkCheck[]> = {
     },
   ],
 
+  zend: [
+    {
+      pattern: /\bZend_|\bZendFramework\b|\bZend\s+Framework\b|zendframework\/zendframework/i,
+      rule: 'zend-framework-abandoned',
+      message: 'References Zend Framework — abandoned in 2019, superseded by Laminas Project',
+      suggestion: 'Replace Zend Framework references with the Laminas Project equivalents (laminas.dev).',
+    },
+    {
+      pattern: /\bZend\\Mvc\b|\bZend\\View\b|\bZend\\Db\b/,
+      rule: 'zend-mvc-abandoned',
+      message: 'References Zend MVC components — abandoned, migrated to Laminas',
+      suggestion: 'Use the equivalent laminas-mvc, laminas-view, or laminas-db packages from the Laminas Project.',
+    },
+  ],
+
   laravel: [
     {
       pattern: /['"][A-Za-z]+Controller@[a-zA-Z]+['"]/,
@@ -252,7 +267,18 @@ export function checkFrameworkStaleness(
     },
   ];
 
-  for (const check of generalChecks) {
+  // PHP general checks (apply to any project with a composer.json)
+  const composerPath = path.join(repoRoot, 'composer.json');
+  const phpGeneralChecks: FrameworkCheck[] = fs.existsSync(composerPath) ? [
+    {
+      pattern: /\bmailhog\b/i,
+      rule: 'php-mailhog-deprecated',
+      message: 'References MailHog — unmaintained since 2022, replaced by Mailpit',
+      suggestion: 'Replace MailHog with Mailpit (axllent/mailpit). Laravel Sail switched to Mailpit in Laravel 10.',
+    },
+  ] : [];
+
+  for (const check of [...generalChecks, ...phpGeneralChecks]) {
     if (check.pattern.test(parsed.rawContent)) {
       const lineNumber = parsed.lines.findIndex((l) => check.pattern.test(l));
       issues.push({
@@ -302,6 +328,7 @@ function detectFrameworks(repoRoot: string): string[] {
 
       if (allDeps['symfony/framework-bundle']) detected.push('symfony');
       if (allDeps['laravel/framework']) detected.push('laravel');
+      if (allDeps['zendframework/zendframework'] || allDeps['zendframework/zend-mvc']) detected.push('zend');
     } catch { /* ignore */ }
   }
 

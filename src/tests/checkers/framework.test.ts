@@ -152,6 +152,77 @@ test('returns no issues for content with no stale patterns', () => {
   }
 });
 
+// ── Zend Framework ────────────────────────────────────────────────────────────
+
+test('detects Zend Framework reference in a Zend project', () => {
+  const repo = makePhpRepo({ require: { 'zendframework/zendframework': '^3.0' } });
+  try {
+    const line = 'This project uses Zend Framework for the MVC layer.';
+    const parsed = makeParsed({ rawContent: line, lines: [line] });
+    const result = checkFrameworkStaleness(parsed, repo);
+    const issue = result.issues.find((i) => i.rule === 'zend-framework-abandoned');
+    assert.ok(issue, 'expected zend-framework-abandoned issue');
+    assert.strictEqual(issue!.severity, 'warn');
+  } finally {
+    cleanupRepo(repo);
+  }
+});
+
+test('detects Zend MVC component reference in a Zend project', () => {
+  const repo = makePhpRepo({ require: { 'zendframework/zend-mvc': '^3.0' } });
+  try {
+    const line = 'Controllers extend Zend\\Mvc\\Controller\\AbstractActionController.';
+    const parsed = makeParsed({ rawContent: line, lines: [line] });
+    const result = checkFrameworkStaleness(parsed, repo);
+    const issue = result.issues.find((i) => i.rule === 'zend-mvc-abandoned');
+    assert.ok(issue, 'expected zend-mvc-abandoned issue');
+  } finally {
+    cleanupRepo(repo);
+  }
+});
+
+// ── PHP general (MailHog) ──────────────────────────────────────────────────────
+
+test('detects MailHog reference in a PHP project', () => {
+  const repo = makePhpRepo({ require: { 'laravel/framework': '^11.0' } });
+  try {
+    const line = 'Set MAIL_HOST=mailhog and MAIL_PORT=1025 for local email testing.';
+    const parsed = makeParsed({ rawContent: line, lines: [line] });
+    const result = checkFrameworkStaleness(parsed, repo);
+    const issue = result.issues.find((i) => i.rule === 'php-mailhog-deprecated');
+    assert.ok(issue, 'expected php-mailhog-deprecated issue');
+    assert.strictEqual(issue!.severity, 'warn');
+  } finally {
+    cleanupRepo(repo);
+  }
+});
+
+test('no MailHog issue for Mailpit reference', () => {
+  const repo = makePhpRepo({ require: { 'laravel/framework': '^11.0' } });
+  try {
+    const line = 'Set MAIL_HOST=127.0.0.1 and MAIL_PORT=2525 for Mailpit.';
+    const parsed = makeParsed({ rawContent: line, lines: [line] });
+    const result = checkFrameworkStaleness(parsed, repo);
+    const issue = result.issues.find((i) => i.rule === 'php-mailhog-deprecated');
+    assert.strictEqual(issue, undefined);
+  } finally {
+    cleanupRepo(repo);
+  }
+});
+
+test('no MailHog issue for non-PHP project', () => {
+  const repo = makeTmpRepo({}); // package.json only, no composer.json
+  try {
+    const line = 'Set MAIL_HOST=mailhog for local email testing.';
+    const parsed = makeParsed({ rawContent: line, lines: [line] });
+    const result = checkFrameworkStaleness(parsed, repo);
+    const issue = result.issues.find((i) => i.rule === 'php-mailhog-deprecated');
+    assert.strictEqual(issue, undefined, 'should not flag mailhog for non-PHP projects');
+  } finally {
+    cleanupRepo(repo);
+  }
+});
+
 // ── Symfony ───────────────────────────────────────────────────────────────────
 
 test('detects SwiftMailer reference in a Symfony project', () => {
