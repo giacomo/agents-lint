@@ -110,6 +110,9 @@ Verifies every path mentioned in your context files (`./src/services`, `./packag
 ### ⚙️ npm Scripts
 Validates that `npm run <script>` commands referenced in your file are present in `package.json`. Works with workspaces and monorepos.
 
+### 🔨 Make Targets
+Validates that `` `make <target>` `` commands referenced in your file name a target actually defined in the repo's `Makefile` (the Make/Go analogue of the npm-scripts check). Only backtick-quoted references are checked, so prose like "make sure" is never mistaken for a target. A `` `make forms-*` `` family reference is satisfied by any defined target sharing that prefix. No Makefile → the check is skipped.
+
 ### 📦 Dependencies
 Detects references to packages not in `package.json`, and flags deprecated packages (`moment`, `request`, `tslint`, etc.).
 
@@ -265,6 +268,7 @@ Place `.agents-lint.json` in your repo root to override defaults:
   "severity": {
     "missingPath": "warn",
     "missingScript": "error",
+    "missingMakeTarget": "error",
     "staleDependency": "warn",
     "missingSection": "error"
   }
@@ -277,6 +281,7 @@ Place `.agents-lint.json` in your repo root to override defaults:
 | `ignorePatterns` | `string[]` | Substrings — matching paths/deps are skipped in all checks including cross-file |
 | `severity.missingPath` | `error\|warn\|info` | Override severity for missing filesystem paths (default: `error`) |
 | `severity.missingScript` | `error\|warn\|info` | Override for missing npm scripts (default: `warn`) |
+| `severity.missingMakeTarget` | `error\|warn\|info` | Override for missing Makefile targets (default: `error`) |
 | `severity.staleDependency` | `error\|warn\|info` | Override for deprecated packages (default: `info`) |
 | `severity.missingSection` | `error\|warn\|info` | Override for missing recommended sections (default: `warn`) |
 

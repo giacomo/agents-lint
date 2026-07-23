@@ -4,6 +4,7 @@ import * as path from 'path';
 import { parseAgentsMd } from './parser.js';
 import { checkFilesystem } from './checkers/filesystem.js';
 import { checkNpmScripts } from './checkers/npm-scripts.js';
+import { checkMakeTargets } from './checkers/make-targets.js';
 import { checkDependencies } from './checkers/dependencies.js';
 import { checkFrameworkStaleness } from './checkers/framework.js';
 import { checkStructure } from './checkers/structure.js';
@@ -84,6 +85,7 @@ export async function lint(options: LintOptions = {}): Promise<LintReport> {
     ...(parsed.fileType === 'memory' ? [] : [
       checkFilesystem(parsed, repoRoot, config),
       checkNpmScripts(parsed, repoRoot, config),
+      checkMakeTargets(parsed, repoRoot, config),
       checkDependencies(parsed, repoRoot, config),
       checkFrameworkStaleness(parsed, repoRoot),
     ]),

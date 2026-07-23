@@ -27,6 +27,7 @@ export function makeParsed(overrides: Partial<ParsedAgentsMd> = {}): ParsedAgent
     sections: [] as ParsedSection[],
     mentionedPaths: [],
     mentionedScripts: [],
+    mentionedMakeTargets: [],
     mentionedDependencies: [],
     mentionedFrameworks: [],
     lines: [],

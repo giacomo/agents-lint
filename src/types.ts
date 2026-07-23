@@ -41,6 +41,7 @@ export interface ParsedAgentsMd {
   sections: ParsedSection[];
   mentionedPaths: string[];
   mentionedScripts: string[];
+  mentionedMakeTargets: string[];
   mentionedDependencies: string[];
   mentionedFrameworks: string[];
   lines: string[];
@@ -61,6 +62,7 @@ export interface LintConfig {
   severity?: {
     missingPath?: Severity;
     missingScript?: Severity;
+    missingMakeTarget?: Severity;
     staleDependency?: Severity;
     staleFramework?: Severity;
     missingSection?: Severity;
