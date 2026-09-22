@@ -19,6 +19,12 @@ const SCRIPT_PATTERNS = [
   /yarn ([\w:-]+)/g,
 ];
 
+// Backtick-only, deliberately: an unquoted `make ...` matches ordinary English
+// ("make sure", "make it work"), so bare mentions are ignored to stay
+// false-positive-free. `*` and trailing `-` are allowed so target *families*
+// (`make forms-*`) survive extraction; the checker resolves them.
+const MAKE_TARGET_PATTERNS = [/`make ([A-Za-z][\w.:*-]*)`/g];
+
 const DEPENDENCY_PATTERNS = [
   /`([@\w][\w/.-]+@[\d.^~*]+)`/g,   // `package@version`
   /\b(react|vue|angular|next|nuxt|svelte|solid|astro|remix|express|fastify|hono|nestjs|prisma|drizzle|zod|typescript)\b/gi,
@@ -69,6 +75,7 @@ export function parseAgentsMd(filePath: string): ParsedAgentsMd {
   const sections = parseSections(lines);
   const mentionedPaths = extractPaths(rawContent);
   const mentionedScripts = extractScripts(rawContent);
+  const mentionedMakeTargets = extractMakeTargets(rawContent);
   const mentionedDependencies = extractDependencies(rawContent);
   const mentionedFrameworks = extractFrameworks(rawContent);
 
@@ -77,6 +84,7 @@ export function parseAgentsMd(filePath: string): ParsedAgentsMd {
     sections,
     mentionedPaths,
     mentionedScripts,
+    mentionedMakeTargets,
     mentionedDependencies,
     mentionedFrameworks,
     lines,
@@ -149,6 +157,20 @@ function extractScripts(content: string): string[] {
   }
 
   return [...scripts];
+}
+
+function extractMakeTargets(content: string): string[] {
+  const targets = new Set<string>();
+
+  for (const pattern of MAKE_TARGET_PATTERNS) {
+    const regex = new RegExp(pattern.source, pattern.flags);
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (match[1]) targets.add(match[1]);
+    }
+  }
+
+  return [...targets];
 }
 
 function extractDependencies(content: string): string[] {
